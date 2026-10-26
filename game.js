@@ -18,12 +18,16 @@
     { id: "stability", name: "Steady Flight", icon: "⌁", description: "Slower, easier-to-read gates.", costs: [4, 7], requires: ["wings", 1] },
     { id: "speed", name: "Slow Current", icon: "◷", description: "Pipes move slower.", costs: [3, 5, 8], requires: ["stability", 1] }
   ];
-  const skillLevels = [
-    ["feather"],
-    ["wings", "portal"],
-    ["secondWind", "stability", "multiplier"],
-    ["speed"]
-  ];
+  const skillLayout = {
+    feather: { x: 166, y: 246 },
+    wings: { x: 435, y: 132 },
+    portal: { x: 435, y: 326 },
+    secondWind: { x: 716, y: 54 },
+    stability: { x: 716, y: 148 },
+    multiplier: { x: 716, y: 326 },
+    speed: { x: 824, y: 148 }
+  };
+  const treeMapSize = { width: 1000, height: 420 };
 
   const defaults = { points: 0, best: 0, upgrades: {} };
   let save = loadSave();
@@ -402,63 +406,81 @@
   }
 
   function drawSkillTree() {
-    const grid = $("#tree-grid");
-    grid.replaceChildren();
+    const map = $("#tree-grid");
+    map.replaceChildren();
     $("#tree-points").textContent = save.points;
     const connectors = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     connectors.setAttribute("class", "tree-connectors");
     connectors.setAttribute("aria-hidden", "true");
-    const levels = skillLevels.map(() => {
-      const level = document.createElement("div");
-      level.className = "tree-level";
-      grid.append(level);
-      return level;
-    });
-    const nodes = new Map();
+    connectors.setAttribute("viewBox", `0 0 ${treeMapSize.width} ${treeMapSize.height}`);
+    connectors.setAttribute("preserveAspectRatio", "none");
+    map.append(connectors);
+    const nodePositions = new Map();
+    const skillLabels = document.createElement("div");
+    skillLabels.className = "tree-labels";
+    map.append(skillLabels);
+
     for (const skill of skills) {
       const rank = rankOf(skill.id);
       const requirementMet = !skill.requires || rankOf(skill.requires[0]) >= skill.requires[1];
-      const maxed = rank >= skill.costs.length;
-      const cost = skill.costs[rank];
-      const canBuy = requirementMet && !maxed && save.points >= cost;
-      const card = document.createElement("article");
-      card.className = `skill-card${!requirementMet ? " locked" : ""}${rank > 0 ? " unlocked" : ""}${maxed ? " maxed" : ""}`;
-      card.dataset.skill = skill.id;
-      const lockText = skill.requires && !requirementMet ? `Needs ${skills.find((item) => item.id === skill.requires[0]).name} ${skill.requires[1]}` : skill.description;
-      card.innerHTML = `
-        <div class="skill-card-top"><span class="skill-icon">${skill.icon}</span><span class="skill-rank">${rank}/${skill.costs.length}</span></div>
-        <h3>${skill.name}</h3><p>${lockText}</p>
-        <button class="skill-buy" ${canBuy ? "" : "disabled"}>${maxed ? "MAXED" : requirementMet ? `UNLOCK · ✦ ${cost}` : "LOCKED"}</button>`;
-      const button = card.querySelector("button");
-      if (canBuy) button.addEventListener("click", () => buySkill(skill));
-      const levelIndex = skillLevels.findIndex((level) => level.includes(skill.id));
-      levels[levelIndex].append(card);
-      nodes.set(skill.id, card);
+      const layout = skillLayout[skill.id];
+      const lastX = layout.x + (skill.costs.length - 1) * 62;
+      const label = document.createElement("span");
+      label.className = "tree-skill-label";
+      label.textContent = skill.name.toUpperCase();
+      label.style.left = `${((layout.x + lastX) / 2) / treeMapSize.width * 100}%`;
+      label.style.top = `${(layout.y - 43) / treeMapSize.height * 100}%`;
+      skillLabels.append(label);
+
+      for (let index = 0; index < skill.costs.length; index++) {
+        const x = layout.x + index * 62;
+        const purchased = rank > index;
+        const available = requirementMet && rank === index;
+        const canBuy = available && save.points >= skill.costs[index];
+        const node = document.createElement("button");
+        node.type = "button";
+        node.className = `tree-node${purchased ? " purchased" : ""}${available ? " available" : ""}${!requirementMet ? " locked" : ""}`;
+        node.style.left = `${x / treeMapSize.width * 100}%`;
+        node.style.top = `${layout.y / treeMapSize.height * 100}%`;
+        node.disabled = !canBuy;
+        node.setAttribute("aria-label", `${skill.name}, rank ${index + 1}, ${purchased ? "unlocked" : available ? `cost ${skill.costs[index]} skill points` : "locked"}`);
+        node.title = `${skill.name} ${index + 1}/${skill.costs.length}: ${skill.description} · ${purchased ? "Unlocked" : available ? `${skill.costs[index]} skill points` : "Locked"}`;
+        node.innerHTML = `
+          <span class="tree-node-icon">${skill.icon}</span>
+          <span class="tree-node-rank">${index + 1}</span>
+          ${purchased ? "" : `<span class="tree-node-cost">${available ? `✦${skill.costs[index]}` : "⌑"}</span>`}`;
+        if (canBuy) node.addEventListener("click", () => buySkill(skill, index));
+        map.append(node);
+        nodePositions.set(`${skill.id}:${index}`, { x, y: layout.y, purchased });
+
+        if (index > 0) {
+          const previous = nodePositions.get(`${skill.id}:${index - 1}`);
+          drawTreeEdge(connectors, previous, { x, y: layout.y }, previous.purchased);
+        }
+      }
     }
-    grid.prepend(connectors);
-    const bounds = grid.getBoundingClientRect();
-    connectors.setAttribute("viewBox", `0 0 ${bounds.width} ${bounds.height}`);
-    connectors.setAttribute("width", bounds.width);
-    connectors.setAttribute("height", bounds.height);
+
     for (const skill of skills) {
       if (!skill.requires) continue;
-      const parent = nodes.get(skill.requires[0]).getBoundingClientRect();
-      const child = nodes.get(skill.id).getBoundingClientRect();
-      const gridBounds = grid.getBoundingClientRect();
-      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      const startX = parent.left + parent.width / 2 - gridBounds.left;
-      const startY = parent.bottom - gridBounds.top;
-      const endX = child.left + child.width / 2 - gridBounds.left;
-      const endY = child.top - gridBounds.top;
-      const curveY = startY + (endY - startY) / 2;
-      path.setAttribute("d", `M ${startX} ${startY} C ${startX} ${curveY}, ${endX} ${curveY}, ${endX} ${endY}`);
-      path.setAttribute("class", `tree-edge${rankOf(skill.requires[0]) >= skill.requires[1] ? " available" : ""}`);
-      connectors.append(path);
+      const parent = nodePositions.get(`${skill.requires[0]}:${skill.requires[1] - 1}`);
+      const child = nodePositions.get(`${skill.id}:0`);
+      drawTreeEdge(connectors, parent, child, rankOf(skill.requires[0]) >= skill.requires[1]);
     }
   }
 
-  function buySkill(skill) {
+  function drawTreeEdge(svg, from, to, unlocked) {
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    const startX = from.x + 25;
+    const endX = to.x - 25;
+    const middleX = startX + Math.max(8, (endX - startX) / 2);
+    path.setAttribute("d", `M ${startX} ${from.y} H ${middleX} V ${to.y} H ${endX}`);
+    path.setAttribute("class", `tree-edge${unlocked ? " available" : ""}`);
+    svg.append(path);
+  }
+
+  function buySkill(skill, requestedRank = rankOf(skill.id)) {
     const rank = rankOf(skill.id);
+    if (requestedRank !== rank) return;
     const cost = skill.costs[rank];
     const requirementMet = !skill.requires || rankOf(skill.requires[0]) >= skill.requires[1];
     if (!requirementMet || cost === undefined || save.points < cost) return;
