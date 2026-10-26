@@ -15,12 +15,14 @@
     { id: "portal", name: "Rift Reader", icon: "◉", description: "Gates are worth extra points.", costs: [3, 5, 7], requires: ["feather", 1] },
     { id: "secondWind", name: "Second Wind", icon: "♡", description: "Survive one crash per run.", costs: [8], requires: ["wings", 2] },
     { id: "multiplier", name: "Score Surge", icon: "✦", description: "Earn double points.", costs: [8], requires: ["portal", 2] },
-    { id: "stability", name: "Steady Flight", icon: "⌁", description: "Slower, easier-to-read gates.", costs: [4, 7], requires: ["wings", 1] }
+    { id: "stability", name: "Steady Flight", icon: "⌁", description: "Slower, easier-to-read gates.", costs: [4, 7], requires: ["wings", 1] },
+    { id: "speed", name: "Quick Current", icon: "➤", description: "Pipes move faster.", costs: [3, 5, 8], requires: ["wings", 1] }
   ];
 
   const defaults = { points: 0, best: 0, upgrades: {} };
   let save = loadSave();
   let pipes = [];
+  let pipesSpawned = 0;
   let stars = [];
   let particles = [];
   let score = 0;
@@ -88,6 +90,7 @@
     score = 0;
     frame = 0;
     pipes = [];
+    pipesSpawned = 0;
     particles = [];
     bird.y = world.height / 2;
     bird.velocity = 0;
@@ -104,11 +107,13 @@
   }
 
   function spawnPipe() {
+    pipesSpawned++;
     const gapSize = Math.max(145, 194 - score * 2);
     const margin = 86 + gapSize / 2;
     const gapCenter = randomBetween(margin, world.height - margin);
     pipes.push({
       x: world.width + 24,
+      hasRift: pipesSpawned % 5 === 0,
       gapTop: gapCenter - gapSize / 2,
       gapBottom: gapCenter + gapSize / 2,
       gapCenter,
@@ -167,7 +172,9 @@
     if (state !== "playing") return;
     frame++;
     const gravityPower = 0.37 * (1 - rankOf("feather") * 0.07);
-    const speed = (3.2 + Math.min(score * 0.06, 1.5)) * (rankOf("stability") > 0 ? 0.9 : 1);
+    const speed = (3.2 + Math.min(score * 0.06, 1.5)) *
+      (rankOf("stability") > 0 ? 0.9 : 1) *
+      (1 + rankOf("speed") * 0.1);
     bird.velocity += gravityPower * bird.gravity;
     bird.y += bird.velocity;
     bird.rotation = Math.max(-0.55, Math.min(0.9, bird.velocity * 0.075));
@@ -176,7 +183,7 @@
     if (pipes[pipes.length - 1].x < world.width - 430) spawnPipe();
     for (const pipe of pipes) {
       pipe.x -= speed;
-      if (!pipe.flipped && pipe.x + 39 < bird.x + bird.radius + 11) {
+      if (pipe.hasRift && !pipe.flipped && pipe.x + 39 < bird.x + bird.radius + 11) {
         pipe.flipped = true;
         bird.gravity *= -1;
         bird.velocity = bird.gravity * -5.5;
@@ -267,6 +274,7 @@
     ctx.fillRect(pipe.x + 7, 0, 2, topHeight - 8);
     ctx.fillRect(pipe.x + 7, bottomY + 8, 2, world.height - bottomY - 8);
 
+    if (!pipe.hasRift) return;
     const portalX = pipe.x + 39;
     const portalY = pipe.gapCenter;
     ctx.save();
