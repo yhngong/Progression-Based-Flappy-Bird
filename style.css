@@ -91,7 +91,8 @@ kbd { padding: 3px 5px; border: 1px solid rgba(168, 180, 231, .2); border-radius
 .hud-button { pointer-events: auto; cursor: pointer; }
 
 .skill-screen, .gameover-screen { padding: 18px; background: rgba(5, 7, 18, .77); backdrop-filter: blur(8px); }
-.panel { width: min(590px, 100%); border: 1px solid rgba(172, 184, 239, .2); border-radius: 13px; background: linear-gradient(145deg, rgba(20, 25, 48, .98), rgba(12, 16, 34, .98)); box-shadow: 0 25px 70px rgba(0, 0, 0, .4); }
+.skill-screen { overflow-y: auto; align-items: start; }
+.panel { width: min(680px, 100%); border: 1px solid rgba(172, 184, 239, .2); border-radius: 13px; background: linear-gradient(145deg, rgba(20, 25, 48, .98), rgba(12, 16, 34, .98)); box-shadow: 0 25px 70px rgba(0, 0, 0, .4); }
 .skill-panel { padding: 26px 30px 18px; }
 .panel-heading { display: flex; justify-content: space-between; align-items: flex-start; }
 .panel-heading h2, .gameover-panel h2 { margin: 8px 0 0; font-size: 31px; line-height: 1; letter-spacing: -.05em; }
@@ -99,8 +100,12 @@ kbd { padding: 3px 5px; border: 1px solid rgba(168, 180, 231, .2); border-radius
 .points-banner { display: flex; justify-content: space-between; align-items: center; margin: 18px 0 13px; padding: 10px 12px; border: 1px solid rgba(255, 215, 131, .15); border-radius: 6px; background: rgba(255, 215, 131, .04); }
 .points-banner > span { color: #989eb4; font-size: 9px; }
 .points-banner strong { font-size: 14px; }
-.tree-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; }
-.skill-card { min-height: 113px; padding: 11px; border: 1px solid rgba(154, 169, 226, .16); border-radius: 7px; background: rgba(25, 31, 57, .65); }
+.tree-grid { position: relative; display: flex; flex-direction: column; gap: 27px; }
+.tree-level { position: relative; z-index: 1; display: flex; justify-content: center; gap: 10px; }
+.tree-connectors { position: absolute; z-index: 0; inset: 0; overflow: visible; pointer-events: none; }
+.tree-edge { fill: none; stroke: rgba(142, 153, 204, .25); stroke-width: 2; }
+.tree-edge.available { stroke: rgba(102, 230, 239, .72); filter: drop-shadow(0 0 4px rgba(102, 230, 239, .28)); }
+.skill-card { position: relative; flex: 1 1 0; min-width: 0; max-width: 170px; min-height: 113px; padding: 11px; border: 1px solid rgba(154, 169, 226, .16); border-radius: 7px; background: rgba(25, 31, 57, .96); }
 .skill-card.locked { opacity: .46; }
 .skill-card.unlocked { border-color: rgba(102, 230, 239, .4); }
 .skill-card.maxed { border-color: rgba(255, 215, 131, .34); }
@@ -144,7 +149,8 @@ kbd { padding: 3px 5px; border: 1px solid rgba(168, 180, 231, .2); border-radius
   .controls-hint { font-size: 8px; }
   .skill-screen, .gameover-screen { padding: 10px; }
   .skill-panel { padding: 18px 14px 13px; }
-  .tree-grid { gap: 6px; }
+  .tree-grid { gap: 20px; }
+  .tree-level { gap: 6px; }
   .skill-card { min-height: 111px; padding: 8px; }
   .skill-card h3 { font-size: 10px; }
   .skill-card p { font-size: 8px; }
