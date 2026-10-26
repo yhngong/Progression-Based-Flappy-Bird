@@ -18,6 +18,19 @@
     { id: "stability", name: "Gate Scout", icon: "⌁", description: "Highlights safe gate openings.", costs: [4, 7], requires: ["wings", 1] },
     { id: "speed", name: "Skill Savant", icon: "◷", description: "Earn a bonus skill point every 5 gates.", costs: [3, 5, 8], requires: ["stability", 1] }
   ];
+  const skins = [
+    { id: "classic", name: "Sunbeam", description: "The original golden bird.", cost: 0, body: "#f6d487", belly: "#fff0bb", wing: "#a77bff", beak: "#f28d89" },
+    { id: "ocean", name: "Deep Current", description: "A cool ocean-blue look.", cost: 8, body: "#56c8d8", belly: "#c4f5f3", wing: "#347eae", beak: "#f3bd72" },
+    { id: "cinder", name: "Cinderwing", description: "A warm ember-colored bird.", cost: 12, body: "#ff9866", belly: "#ffe0a3", wing: "#c34a5a", beak: "#ffe17b" },
+    { id: "meadow", name: "Meadow", description: "Fresh green with sunny details.", cost: 16, body: "#8bd17c", belly: "#edffc0", wing: "#478b78", beak: "#f6ad68" },
+    { id: "cosmic", name: "Cosmic", description: "A little bird from another rift.", cost: 22, body: "#bd91ff", belly: "#f2d8ff", wing: "#6359c9", beak: "#77e6e6" }
+  ];
+  const deathEffects = [
+    { id: "starburst", name: "Starburst", description: "A bright burst of stardust.", cost: 0, colors: ["#91e8ff", "#d0a5ff", "#ffd783"], shape: "circle", count: 34, speed: [1, 4] },
+    { id: "embers", name: "Embers", description: "A shower of glowing embers.", cost: 10, colors: ["#ff684a", "#ffb347", "#ffe29a"], shape: "circle", count: 44, speed: [0.8, 3.8] },
+    { id: "confetti", name: "Confetti", description: "A colorful celebratory pop.", cost: 15, colors: ["#ff6584", "#ffd166", "#68e0cf", "#a58aff"], shape: "square", count: 58, speed: [1, 4.5] },
+    { id: "nova", name: "Nova", description: "A cool, radiant rift flash.", cost: 20, colors: ["#66e6ef", "#bd8dff", "#ffffff"], shape: "ring", count: 40, speed: [1.5, 5] }
+  ];
   const skillLayout = {
     feather: { x: 166, y: 246 },
     wings: { x: 435, y: 132 },
@@ -29,7 +42,17 @@
   };
   const treeMapSize = { width: 1000, height: 420 };
 
-  const defaults = { points: 0, best: 0, upgrades: {} };
+  const defaults = {
+    points: 0,
+    best: 0,
+    upgrades: {},
+    cosmetics: {
+      ownedSkins: ["classic"],
+      ownedEffects: ["starburst"],
+      skin: "classic",
+      effect: "starburst"
+    }
+  };
   let save = loadSave();
   let pipes = [];
   let pipesSpawned = 0;
@@ -47,7 +70,7 @@
 
   function loadSave() {
     const raw = localStorage.getItem(storageKey);
-    if (!raw) return { ...defaults, upgrades: {} };
+    if (!raw) return structuredClone(defaults);
     try {
       const data = JSON.parse(raw);
       const upgrades = {};
@@ -58,12 +81,30 @@
       return {
         points: Math.max(0, Number(data.points) || 0),
         best: Math.max(0, Number(data.best) || 0),
-        upgrades
+        upgrades,
+        cosmetics: loadCosmetics(data.cosmetics)
       };
     } catch (error) {
       console.error("Could not read the saved flight plan.", error);
-      return { ...defaults, upgrades: {} };
+      return structuredClone(defaults);
     }
+  }
+
+  function loadCosmetics(data = {}) {
+    const ownedSkins = new Set(["classic"]);
+    const ownedEffects = new Set(["starburst"]);
+    for (const id of data.ownedSkins || []) {
+      if (skins.some((skin) => skin.id === id)) ownedSkins.add(id);
+    }
+    for (const id of data.ownedEffects || []) {
+      if (deathEffects.some((effect) => effect.id === id)) ownedEffects.add(id);
+    }
+    return {
+      ownedSkins: [...ownedSkins],
+      ownedEffects: [...ownedEffects],
+      skin: ownedSkins.has(data.skin) ? data.skin : "classic",
+      effect: ownedEffects.has(data.effect) ? data.effect : "starburst"
+    };
   }
 
   function persist() {
@@ -150,6 +191,7 @@
   function gameOver() {
     if (state !== "playing") return;
     state = "gameover";
+    playDeathEffect();
     const bonusSkillPoints = Math.floor(pipesPassed / 5) * rankOf("speed");
     const earnedPoints = score + bonusSkillPoints;
     save.points += earnedPoints;
@@ -182,7 +224,10 @@
   }
 
   function update() {
-    if (state !== "playing") return;
+    if (state !== "playing") {
+      if (state === "gameover") updateParticles();
+      return;
+    }
     frame++;
     const gravityPower = 0.37;
     const speed = 3.2 + Math.min(score * 0.06, 1.5);
@@ -322,26 +367,27 @@
   }
 
   function drawBird() {
+    const skin = skins.find((item) => item.id === save.cosmetics.skin) || skins[0];
     ctx.save();
     ctx.translate(bird.x, bird.y);
     ctx.rotate(bird.rotation);
     if (invulnerable > 0 && Math.floor(invulnerable / 6) % 2 === 0) ctx.globalAlpha = 0.35;
     ctx.shadowColor = bird.gravity === 1 ? "#67e8f2" : "#be8aff";
     ctx.shadowBlur = 17;
-    ctx.fillStyle = "#f6d487";
+    ctx.fillStyle = skin.body;
     ctx.beginPath();
     ctx.ellipse(0, 0, 20, 15, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.shadowBlur = 0;
-    ctx.fillStyle = "#fff0bb";
+    ctx.fillStyle = skin.belly;
     ctx.beginPath();
     ctx.ellipse(-4, -4, 10, 6, -0.3, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = "#a77bff";
+    ctx.fillStyle = skin.wing;
     ctx.beginPath();
     ctx.ellipse(-9, 2 + Math.sin(frame * 0.25) * 2, 10, 6, -0.3, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = "#f28d89";
+    ctx.fillStyle = skin.beak;
     ctx.beginPath();
     ctx.moveTo(17, -2); ctx.lineTo(28, 1); ctx.lineTo(17, 5); ctx.closePath();
     ctx.fill();
@@ -356,9 +402,23 @@
     for (const particle of particles) {
       ctx.globalAlpha = Math.max(0, particle.life / particle.maxLife);
       ctx.fillStyle = particle.color;
-      ctx.beginPath();
-      ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
-      ctx.fill();
+      if (particle.shape === "square") {
+        ctx.save();
+        ctx.translate(particle.x, particle.y);
+        ctx.rotate(particle.rotation);
+        ctx.fillRect(-particle.size, -particle.size, particle.size * 2, particle.size * 2);
+        ctx.restore();
+      } else if (particle.shape === "ring") {
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, particle.size * 2, 0, Math.PI * 2);
+        ctx.strokeStyle = particle.color;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      } else {
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
     ctx.globalAlpha = 1;
   }
@@ -380,8 +440,29 @@
       const angle = Math.random() * Math.PI * 2;
       const speed = randomBetween(0.8, 3.8);
       particles.push({
-        x, y, color, size: randomBetween(1.5, 3.5), life: randomBetween(16, 34), maxLife: 34,
+        x, y, color, size: randomBetween(1.5, 3.5), life: randomBetween(16, 34), maxLife: 34, shape: "circle",
         vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed
+      });
+    }
+  }
+
+  function playDeathEffect() {
+    const effect = deathEffects.find((item) => item.id === save.cosmetics.effect) || deathEffects[0];
+    for (let i = 0; i < effect.count; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = randomBetween(effect.speed[0], effect.speed[1]);
+      const life = randomBetween(25, 58);
+      particles.push({
+        x: bird.x,
+        y: bird.y,
+        color: effect.colors[i % effect.colors.length],
+        size: randomBetween(2, effect.id === "nova" ? 6 : 4),
+        life,
+        maxLife: life,
+        shape: effect.shape,
+        rotation: randomBetween(0, Math.PI),
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed
       });
     }
   }
@@ -481,6 +562,60 @@
     }
   }
 
+  function drawCosmeticsShop() {
+    $("#tree-points").textContent = save.points;
+    const container = $("#cosmetics-grid");
+    container.replaceChildren();
+    const sections = [
+      { title: "BIRD SKINS", items: skins, owned: save.cosmetics.ownedSkins, selected: save.cosmetics.skin, type: "skin" },
+      { title: "FLIGHT-ENDING EFFECTS", items: deathEffects, owned: save.cosmetics.ownedEffects, selected: save.cosmetics.effect, type: "effect" }
+    ];
+    for (const section of sections) {
+      const heading = document.createElement("h3");
+      heading.className = "cosmetic-section-title";
+      heading.textContent = section.title;
+      container.append(heading);
+      const list = document.createElement("div");
+      list.className = "cosmetic-list";
+      for (const item of section.items) {
+        const owned = section.owned.includes(item.id);
+        const selected = section.selected === item.id;
+        const card = document.createElement("article");
+        card.className = `cosmetic-card${selected ? " selected" : ""}`;
+        const preview = section.type === "skin"
+          ? `<span class="skin-preview" style="--skin-body:${item.body};--skin-belly:${item.belly};--skin-wing:${item.wing};--skin-beak:${item.beak}"><i></i></span>`
+          : `<span class="effect-preview ${item.id}">${item.shape === "square" ? "▪ ✦ ▪" : item.shape === "ring" ? "◎ ✧ ◎" : "✦ · ✧"}</span>`;
+        const buttonText = selected ? "EQUIPPED" : owned ? "EQUIP" : `BUY · ✦ ${item.cost}`;
+        const canAct = selected || owned || save.points >= item.cost;
+        card.innerHTML = `
+          <div class="cosmetic-preview">${preview}</div>
+          <div class="cosmetic-info"><h4>${item.name}</h4><p>${item.description}</p></div>
+          <button class="cosmetic-button" ${canAct ? "" : "disabled"}>${buttonText}</button>`;
+        card.querySelector("button").addEventListener("click", () => {
+          if (selected) return;
+          if (owned) {
+            equipCosmetic(section.type, item.id);
+          } else if (save.points >= item.cost) {
+            save.points -= item.cost;
+            section.owned.push(item.id);
+            equipCosmetic(section.type, item.id);
+          }
+        });
+        list.append(card);
+      }
+      container.append(list);
+    }
+  }
+
+  function equipCosmetic(type, id) {
+    if (type === "skin") save.cosmetics.skin = id;
+    else save.cosmetics.effect = id;
+    persist();
+    refreshMenu();
+    drawCosmeticsShop();
+    playTone(600, 0.1, "sine");
+  }
+
   function drawTreeEdge(svg, from, to, unlocked) {
     const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
     const startX = from.x + 25;
@@ -511,10 +646,26 @@
     requestAnimationFrame(animationLoop);
   }
 
+  function showTreeTab() {
+    $("#tree-view").hidden = false;
+    $("#cosmetics-view").hidden = true;
+    $("#tree-tab").setAttribute("aria-selected", "true");
+    $("#cosmetics-tab").setAttribute("aria-selected", "false");
+    drawSkillTree();
+  }
+
   $("#play-button").addEventListener("click", newRun);
   $("#retry-button").addEventListener("click", newRun);
-  $("#tree-button").addEventListener("click", () => { drawSkillTree(); showScreen($("#skill-screen")); });
-  $("#gameover-tree-button").addEventListener("click", () => { drawSkillTree(); showScreen($("#skill-screen")); });
+  $("#tree-button").addEventListener("click", () => { showTreeTab(); showScreen($("#skill-screen")); });
+  $("#gameover-tree-button").addEventListener("click", () => { showTreeTab(); showScreen($("#skill-screen")); });
+  $("#tree-tab").addEventListener("click", showTreeTab);
+  $("#cosmetics-tab").addEventListener("click", () => {
+    $("#tree-view").hidden = true;
+    $("#cosmetics-view").hidden = false;
+    $("#tree-tab").setAttribute("aria-selected", "false");
+    $("#cosmetics-tab").setAttribute("aria-selected", "true");
+    drawCosmeticsShop();
+  });
   $("#tree-close").addEventListener("click", () => {
     refreshMenu();
     showScreen(state === "gameover" ? $("#gameover-screen") : $("#menu-screen"));

@@ -62,11 +62,20 @@
               </div>
               <button class="close-button" id="tree-close" aria-label="Close skill tree">×</button>
             </div>
-            <div class="tree-map-wrap">
-              <div class="points-banner"><span>AVAILABLE SKILL POINTS</span><strong>✦ <b id="tree-points">0</b></strong></div>
-              <div class="tree-map" id="tree-grid"></div>
+            <div class="shop-nav" role="tablist" aria-label="Flight progression">
+              <button class="shop-tab" id="tree-tab" role="tab" aria-selected="true">SKILL TREE</button>
+              <button class="shop-tab" id="cosmetics-tab" role="tab" aria-selected="false">SKINS &amp; EFFECTS</button>
             </div>
-            <p class="tree-note">Follow the branches to unlock upgrades. Every skill point scored carries over.</p>
+            <div class="points-banner"><span>AVAILABLE SKILL POINTS</span><strong>✦ <b id="tree-points">0</b></strong></div>
+            <div id="tree-view" role="tabpanel">
+              <div class="tree-map-wrap">
+                <div class="tree-map" id="tree-grid"></div>
+              </div>
+              <p class="tree-note">Follow the branches to unlock upgrades. Score and cosmetics use the same points.</p>
+            </div>
+            <div id="cosmetics-view" role="tabpanel" hidden>
+              <div class="cosmetics-grid" id="cosmetics-grid"></div>
+            </div>
           </div>
         </section>
 
