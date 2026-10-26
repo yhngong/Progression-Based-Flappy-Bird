@@ -10,13 +10,13 @@
   const bird = { x: 220, y: 300, velocity: 0, radius: 16, gravity: 1, rotation: 0 };
   const pipeWidth = 76;
   const skills = [
-    { id: "feather", name: "Featherweight", icon: "✧", description: "Gravity is gentler.", costs: [2, 4, 6], requires: null },
-    { id: "wings", name: "Stronger Wings", icon: "↟", description: "Flaps give you more lift.", costs: [2, 4, 6], requires: ["feather", 1] },
-    { id: "portal", name: "Rift Reader", icon: "◉", description: "Gates are worth extra points.", costs: [3, 5, 7], requires: ["feather", 1] },
+    { id: "feather", name: "Point Pouch", icon: "✧", description: "Earn +1 point per gate per rank.", costs: [2, 4, 6], requires: null },
+    { id: "wings", name: "Streak Bonus", icon: "↟", description: "Bonus points every 5 gates.", costs: [2, 4, 6], requires: ["feather", 1] },
+    { id: "portal", name: "Rift Reader", icon: "◉", description: "Earn bonus points at rifts.", costs: [3, 5, 7], requires: ["feather", 1] },
     { id: "secondWind", name: "Second Wind", icon: "♡", description: "Survive one crash per run.", costs: [8], requires: ["wings", 2] },
     { id: "multiplier", name: "Score Surge", icon: "✦", description: "Earn double points.", costs: [8], requires: ["portal", 2] },
-    { id: "stability", name: "Steady Flight", icon: "⌁", description: "Slower, easier-to-read gates.", costs: [4, 7], requires: ["wings", 1] },
-    { id: "speed", name: "Slow Current", icon: "◷", description: "Pipes move slower.", costs: [3, 5, 8], requires: ["stability", 1] }
+    { id: "stability", name: "Gate Scout", icon: "⌁", description: "Highlights safe gate openings.", costs: [4, 7], requires: ["wings", 1] },
+    { id: "speed", name: "Skill Savant", icon: "◷", description: "Earn a bonus skill point every 5 gates.", costs: [3, 5, 8], requires: ["stability", 1] }
   ];
   const skillLayout = {
     feather: { x: 166, y: 246 },
@@ -36,6 +36,7 @@
   let stars = [];
   let particles = [];
   let score = 0;
+  let pipesPassed = 0;
   let frame = 0;
   let state = "menu";
   let invulnerable = 0;
@@ -98,6 +99,7 @@
 
   function newRun() {
     score = 0;
+    pipesPassed = 0;
     frame = 0;
     pipes = [];
     pipesSpawned = 0;
@@ -134,8 +136,7 @@
 
   function flap() {
     if (state !== "playing") return;
-    const wingBoost = 1 + rankOf("wings") * 0.08;
-    bird.velocity = -bird.gravity * 7.2 * wingBoost;
+    bird.velocity = -bird.gravity * 7.2;
     burst(bird.x - bird.gravity * 12, bird.y, bird.gravity === 1 ? "#91e8ff" : "#d0a5ff", 5);
     playTone(460, 0.045, "sine");
   }
@@ -149,12 +150,14 @@
   function gameOver() {
     if (state !== "playing") return;
     state = "gameover";
-    save.points += score;
+    const bonusSkillPoints = Math.floor(pipesPassed / 5) * rankOf("speed");
+    const earnedPoints = score + bonusSkillPoints;
+    save.points += earnedPoints;
     save.best = Math.max(save.best, score);
     persist();
     $("#final-score").textContent = score;
     $("#final-best").textContent = save.best;
-    $("#earned-points").textContent = score;
+    $("#earned-points").textContent = earnedPoints;
     refreshMenu();
     playTone(130, 0.25, "triangle");
     showScreen($("#gameover-screen"));
@@ -181,10 +184,8 @@
   function update() {
     if (state !== "playing") return;
     frame++;
-    const gravityPower = 0.37 * (1 - rankOf("feather") * 0.07);
-    const speed = (3.2 + Math.min(score * 0.06, 1.5)) *
-      (rankOf("stability") > 0 ? 0.9 : 1) *
-      (1 - rankOf("speed") * 0.1);
+    const gravityPower = 0.37;
+    const speed = 3.2 + Math.min(score * 0.06, 1.5);
     bird.velocity += gravityPower * bird.gravity;
     bird.y += bird.velocity;
     bird.rotation = Math.max(-0.55, Math.min(0.9, bird.velocity * 0.075));
@@ -204,7 +205,10 @@
       }
       if (!pipe.scored && pipe.x + pipeWidth < bird.x) {
         pipe.scored = true;
-        score += (rankOf("multiplier") > 0 ? 2 : 1) + rankOf("portal");
+        pipesPassed++;
+        const gatePoints = 1 + rankOf("feather") + (pipesPassed % 5 === 0 ? rankOf("wings") : 0);
+        const riftPoints = pipe.hasRift ? rankOf("portal") * 2 : 0;
+        score += gatePoints * (rankOf("multiplier") > 0 ? 2 : 1) + riftPoints;
         $("#score").textContent = score;
         burst(bird.x, bird.y, "#ffd783", 10);
         playTone(800, 0.06, "sine");
@@ -283,6 +287,15 @@
     ctx.fillStyle = "rgba(176, 183, 255, .2)";
     ctx.fillRect(pipe.x + 7, 0, 2, topHeight - 8);
     ctx.fillRect(pipe.x + 7, bottomY + 8, 2, world.height - bottomY - 8);
+    if (rankOf("stability") > 0) {
+      ctx.save();
+      ctx.strokeStyle = "rgba(255, 220, 133, .75)";
+      ctx.lineWidth = 2;
+      ctx.shadowColor = "#f2ce79";
+      ctx.shadowBlur = 8;
+      ctx.strokeRect(pipe.x - 3, topHeight + 2, pipeWidth + 6, bottomY - topHeight - 4);
+      ctx.restore();
+    }
 
     if (!pipe.hasRift) return;
     const portalX = pipe.x + 39;

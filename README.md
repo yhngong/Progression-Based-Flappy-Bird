@@ -9,6 +9,6 @@ Open `index.html` in a browser, or publish the repository with GitHub Pages.
 - Press **Space**, **Up Arrow**, or click/tap to flap against gravity.
 - Every fifth pipe contains a rift that flips gravity. Avoid the gate edges and screen bounds.
 - Points scored on a run become skill points when that run ends.
-- Follow the skill tree to unlock helpful upgrades, including slower pipes; progress is saved in your browser.
+- Follow the skill tree to unlock score bonuses, rift rewards, a one-time rescue, and clearer gate markers; progress is saved in your browser.
 
 No build tools or external dependencies are required.
