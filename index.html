@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#080b18">
+    <title>Gravity Bird — Rift Runner</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="game.js" defer></script>
+  </head>
+  <body>
+    <main class="app">
+      <header class="topbar">
+        <a class="brand" href="#" aria-label="Gravity Bird home">
+          <span class="brand-mark">✦</span>
+          <span>RIFT<span class="brand-light">BIRD</span></span>
+        </a>
+        <div class="topbar-note"><span class="live-dot"></span> GRAVITY IS YOURS TO BEND</div>
+        <button class="icon-button" id="sound-button" aria-label="Toggle sound" title="Toggle sound">♫</button>
+      </header>
+
+      <section class="game-shell" aria-label="Gravity Bird game">
+        <canvas id="game" aria-label="Game area"></canvas>
+
+        <div class="hud" id="hud" hidden>
+          <div class="hud-score"><span>SCORE</span><strong id="score">0</strong></div>
+          <div class="hud-right">
+            <span class="gravity-tag" id="gravity-tag">↓ GRAVITY</span>
+            <button class="hud-button" id="quit-button">EXIT</button>
+          </div>
+        </div>
+
+        <section class="screen menu-screen" id="menu-screen">
+          <div class="menu-content">
+            <div class="eyebrow"><span class="eyebrow-line"></span> A LITTLE FLIGHT, A LOT OF GRAVITY</div>
+            <h1>FLAP INTO<br><span>THE RIFT.</span></h1>
+            <p class="lead">Thread the gates. Flip gravity. Build a bird that can go further.</p>
+            <div class="menu-actions">
+              <button class="button button-primary" id="play-button">START RUN <span>↗</span></button>
+              <button class="button button-secondary" id="tree-button">SKILL TREE <span>✳</span></button>
+            </div>
+            <div class="menu-stats">
+              <div><span>BEST RUN</span><strong id="best-score">0</strong></div>
+              <div class="stat-divider"></div>
+              <div><span>SKILL POINTS</span><strong><span class="sparkle">✦</span> <b id="banked-points">0</b></strong></div>
+            </div>
+            <div class="controls-hint"><kbd>SPACE</kbd> / <kbd>CLICK</kbd> TO FLAP <span>·</span> RIFTS FLIP GRAVITY</div>
+          </div>
+          <div class="menu-orbit orbit-one"></div>
+          <div class="menu-orbit orbit-two"></div>
+        </section>
+
+        <section class="screen skill-screen" id="skill-screen" hidden>
+          <div class="panel skill-panel">
+            <div class="panel-heading">
+              <div>
+                <div class="eyebrow"><span class="eyebrow-line"></span> GROW STRONGER</div>
+                <h2>FLIGHT PLAN</h2>
+              </div>
+              <button class="close-button" id="tree-close" aria-label="Close skill tree">×</button>
+            </div>
+            <div class="points-banner"><span>AVAILABLE SKILL POINTS</span><strong>✦ <b id="tree-points">0</b></strong></div>
+            <div class="tree-grid" id="tree-grid"></div>
+            <p class="tree-note">Earn 1 skill point for every point scored. Your upgrades stick around.</p>
+          </div>
+        </section>
+
+        <section class="screen gameover-screen" id="gameover-screen" hidden>
+          <div class="panel gameover-panel">
+            <div class="eyebrow"><span class="eyebrow-line"></span> RUN COMPLETE</div>
+            <h2>NOT BAD,<br><span>FLIGHTLESS.</span></h2>
+            <div class="result-stats">
+              <div><span>THIS RUN</span><strong id="final-score">0</strong></div>
+              <div><span>BEST RUN</span><strong id="final-best">0</strong></div>
+            </div>
+            <div class="points-earned">✦ <b id="earned-points">0</b> skill points added to your flight plan</div>
+            <button class="button button-primary full-button" id="retry-button">FLY AGAIN <span>↗</span></button>
+            <button class="text-button" id="gameover-tree-button">SPEND SKILL POINTS <span>→</span></button>
+          </div>
+        </section>
+
+        <div class="toast" id="toast" role="status" aria-live="polite"></div>
+      </section>
+      <footer class="footer"><span>ONE MORE RUN?</span><span>BUILT FOR THE UPSIDE-DOWN</span></footer>
+    </main>
+  </body>
+</html>
